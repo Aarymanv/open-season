@@ -5,4 +5,4 @@ Round 1 is the open sea, shared with three rival ships. Round 2 is your own bay.
 
 Play: the whole game is `index.html`, one file with no build step. It works on a phone or a laptop.
 
-Made by Aaryman Vijaywargi (Bullet Games), built with AI assistance.
+Made by Aaryman Vijaywargi (Bullet Games), built with AI.
