@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Open Season: a one-minute whaling game about who owns the whale you let swim.">
+</head>
+<body>
+<title>Open Season</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rye&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+  /* Single-look design: a night sea. Every color is painted explicitly. */
+  :root {
+    --ink: #0B2233;
+    --deep: #0F3347;
+    --sea: #145067;
+    --bone: #F1E6CF;
+    --bone-dim: #BDB39E;
+    --brass: #E0A43A;
+    --rust: #D0603F;
+    --kelp: #7FB89A;
+    --panel: rgba(9, 27, 40, 0.94);
+    color-scheme: dark;
+  }
+  [hidden] { display: none !important; }
+  html { height: 100%; box-sizing: border-box; }
+  body {
+    height: 100%;
+    margin: 0;
+    background: var(--ink);
+    color: var(--bone);
+    font-family: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app { position: relative; width: 100%; height: 100%; overflow: hidden; }
+  #sea { display: block; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+
+  .hud {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px;
+    padding: 10px 16px;
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-size: 15px; letter-spacing: 0.04em; text-transform: uppercase;
+    pointer-events: none;
+    background: linear-gradient(rgba(11, 34, 51, 0.92), rgba(11, 34, 51, 0));
+  }
+  .hud-l { justify-self: start; color: var(--bone-dim); white-space: nowrap; }
+  .hud-l b { color: var(--bone); font-weight: 700; }
+  .hud-r { justify-self: end; display: flex; gap: 12px; white-space: nowrap; color: var(--bone-dim); }
+  .hud-r b { color: var(--bone); font-weight: 700; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .hud-r .brass b { color: var(--brass); }
+  .clock {
+    display: flex; align-items: center; gap: 7px;
+    padding: 3px 12px 3px 9px;
+    border: 1.5px solid rgba(241, 230, 207, 0.35); border-radius: 8px;
+    background: #081A27;
+    font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: 0.02em;
+    color: var(--bone);
+  }
+  .flag {
+    width: 0; height: 0;
+    border-left: 9px solid var(--bone-dim);
+    border-top: 5px solid transparent; border-bottom: 5px solid transparent;
+    transform-origin: 0 50%; transition: transform 0.3s, border-color 0.3s;
+  }
+  .clock.low { border-color: var(--rust); color: var(--rust); }
+  .clock.low .flag { border-left-color: var(--rust); transform: rotate(-35deg); }
+
+  .panel-wrap {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+    background: rgba(8, 24, 36, 0.45);
+  }
+  .panel {
+    width: 100%; max-width: 470px; max-height: 100%; overflow-y: auto;
+    box-sizing: border-box;
+    padding: 24px 22px 22px;
+    background: var(--panel);
+    border: 1px solid rgba(241, 230, 207, 0.16);
+    border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
+    -webkit-user-select: text; user-select: text;
+  }
+  .brand {
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase;
+    color: var(--brass);
+    margin: 0 0 6px;
+  }
+  h1, h2 {
+    font-family: "Rye", "Georgia", serif; font-weight: 400;
+    color: var(--bone); margin: 0; text-wrap: balance; line-height: 1.05;
+  }
+  h1 { font-size: clamp(42px, 12vw, 58px); letter-spacing: 0.01em; }
+  h2 { font-size: clamp(26px, 7vw, 32px); }
+  .lede { font-size: 17px; line-height: 1.45; color: var(--bone); margin: 12px 0 0; }
+  .panel p { line-height: 1.5; margin: 12px 0 0; color: var(--bone); }
+  .panel .small { font-size: 14px; color: var(--bone-dim); }
+  .howto {
+    margin: 16px 0 0; padding: 12px 14px;
+    border-left: 3px solid var(--brass); background: rgba(224, 164, 58, 0.08);
+    line-height: 1.45;
+  }
+  .howto b { color: var(--brass); }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: center; }
+  .btn {
+    appearance: none; border: 0; cursor: pointer;
+    font-family: "Barlow Condensed", "Arial Narrow", sans-serif;
+    font-size: 21px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    padding: 12px 22px; border-radius: 10px;
+    background: var(--brass); color: var(--ink);
+  }
+  .btn.ghost { background: transparent; color: var(--bone); border: 1.5px solid rgba(241, 230, 207, 0.4); }
+  .btn:focus-visible { outline: 3px solid var(--bone); outline-offset: 3px; }
+  .credit { margin-top: 18px; font-size: 13px; color: var(--bone-dim); line-height: 1.4; }
+
+  .score { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .score > div { padding: 12px; border-radius: 10px; background: rgba(241, 230, 207, 0.05); border: 1px solid rgba(241, 230, 207, 0.1); }
+  .score .lbl { font-family: "Barlow Condensed", sans-serif; font-size: 13px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--bone-dim); }
+  .score .big { font-family: "Barlow Condensed", sans-serif; font-size: 40px; font-weight: 700; line-height: 1.05; font-variant-numeric: tabular-nums; }
+  .score .r1 .big { color: var(--rust); }
+  .score .r2 .big { color: var(--brass); }
+  .score .sub { font-size: 14px; color: var(--bone-dim); line-height: 1.35; margin-top: 2px; }
+  .chart { margin-top: 14px; }
+  .chart svg { display: block; width: 100%; height: auto; }
+  .fact { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(241, 230, 207, 0.14); }
+
+  @media (max-width: 380px) {
+    .hud { padding-inline: 12px; font-size: 13px; }
+    .hud-r { gap: 8px; }
+    .clock { font-size: 19px; padding: 2px 9px 2px 7px; }
+  }
+</style>
+
+<div id="app">
+  <canvas id="sea" aria-label="Open Season game board"></canvas>
+
+  <div class="hud" id="hud">
+    <div class="hud-l" id="hRound"><b>Open Season</b></div>
+    <div class="clock" id="hClock"><span class="flag"></span><span id="hTime">1:00</span></div>
+    <div class="hud-r">
+      <span class="brass"><b id="hBar">0</b> barrels</span>
+      <span><b id="hPod">14</b> whales</span>
+    </div>
+  </div>
+
+  <div class="panel-wrap" id="panelWrap">
+    <div class="panel" id="panel" role="dialog" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const cv = document.getElementById('sea');
+  const ctx = cv.getContext('2d');
+  const app = document.getElementById('app');
+  const $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const COL = {
+    ink: '#0B2233', deep: '#0F3347', sea: '#145067', bone: '#F1E6CF', boneDim: '#BDB39E',
+    brass: '#E0A43A', rust: '#D0603F', kelp: '#7FB89A',
+    whale: '#93AEC1', whaleBack: '#6E889C', calf: '#BFD4E0'
+  };
+
+  // Tuning. Both rounds use the same pod, the same ships and the same birth rate.
+  const CFG = {
+    roundTime: 60, N0: 16, K: 40, r: 0.055, calfGrow: 5,
+    playerCd: 0.7, rivalMin: 2.2, rivalMax: 3.0, rivalReact: 0.35,
+    surfMin: 1.7, surfMax: 2.5, diveMin: 1.6, diveMax: 3.4
+  };
+
+  let W = 0, H = 0, dpr = 1, L = 48, hudH = 56, rivalY = 0, buoyY = 0, seaTop = 0, seaBot = 0, playerY = 0;
+  let mode = 'title';       // title | play | between
+  let round = 0, running = false, timeLeft = CFG.roundTime, clock = 0, banner = null;
+  let whales = [], shots = [], fx = [], texts = [];
+  let birthAcc = 0, sampleAcc = 0;
+  const boat = { x: 0, y: 0, tx: 0, cd: 0 };
+  const rivals = [0, 1, 2].map(() => ({ x: 0, y: 0, cd: 2, n: 0, bob: Math.random() * 6 }));
+  const stats = [null, null, null];
+
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const isAdult = (w) => w.age >= CFG.calfGrow;
+  const scaleOf = (w) => 0.45 + 0.55 * Math.min(1, w.age / CFG.calfGrow);
+
+  function newStats() { return { caught: 0, rival: 0, born: 0, left: 0, series: [], early: false, endT: 0 }; }
+
+  function mkWhale(x, y, calf) {
+    const surf = !calf && Math.random() < 0.4;
+    return {
+      x, y, a: rand(0, Math.PI * 2), turn: rand(-0.3, 0.3), spd: rand(12, 22),
+      age: calf ? 0 : CFG.calfGrow, surf, st: surf ? rand(0.3, CFG.surfMax) : rand(0.3, CFG.diveMax),
+      sAge: surf ? 1 : 0, spout: 0, taken: false, dead: false
+    };
+  }
+
+  function seedPod(n) {
+    whales = [];
+    for (let i = 0; i < n; i++) whales.push(mkWhale(rand(L, W - L), rand(seaTop, seaBot), false));
+  }
+
+  function resize() {
+    const r = app.getBoundingClientRect();
+    W = r.width; H = r.height;
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    hudH = $('hud').offsetHeight || 56;
+    L = clamp(Math.min(W, H) * 0.105, 34, 62);
+    rivalY = hudH + 24;
+    buoyY = hudH + 52;
+    seaTop = buoyY + L * 0.6;
+    playerY = H - 38;
+    seaBot = H - 64 - L * 0.35;
+    rivals.forEach((b, i) => { b.x = W * (0.2 + 0.3 * i); b.y = rivalY; });
+    boat.y = playerY;
+    if (!boat.x) { boat.x = W / 2; boat.tx = W / 2; }
+    boat.x = clamp(boat.x, 30, W - 30); boat.tx = clamp(boat.tx, 30, W - 30);
+    whales.forEach((w) => { w.x = clamp(w.x, L * 0.7, W - L * 0.7); w.y = clamp(w.y, seaTop, seaBot); });
+  }
+
+  function aliveCount() { let n = 0; for (const w of whales) if (!w.dead && !w.taken) n++; return n; }
+
+  function fire(src, w, who) {
+    w.taken = true;
+    const sx = src.x, sy = src.y + (who === 'player' ? -14 : 12);
+    const d = Math.hypot(w.x - sx, w.y - sy);
+    shots.push({ sx, sy, w, t: 0, dur: clamp(d / 950, 0.12, 0.42), who, src });
+  }
+
+  function float(x, y, txt, col) { texts.push({ x, y, txt, col, t: 0 }); }
+
+  function startRound(n) {
+    round = n; mode = 'play'; running = true; banner = null;
+    stats[n] = newStats();
+    seedPod(CFG.N0);
+    shots = []; fx = []; texts = []; birthAcc = 0; sampleAcc = 0;
+    timeLeft = CFG.roundTime; boat.cd = 0;
+    rivals.forEach((b) => { b.cd = rand(1.4, 3.0); b.n = 0; });
+    stats[n].series.push(CFG.N0);
+    $('panelWrap').hidden = true;
+    $('hRound').innerHTML = n === 1 ? '<b>Round 1</b> &middot; Open sea' : '<b>Round 2</b> &middot; Your bay';
+    cv.focus && cv.focus();
+  }
+
+  function endRound(reason) {
+    running = false; mode = 'between';
+    const s = stats[round];
+    s.left = aliveCount();
+    s.endT = CFG.roundTime - Math.max(0, timeLeft);
+    s.early = reason === 'empty';
+    const last = s.series[s.series.length - 1] || 0;
+    while (s.series.length < CFG.roundTime * 2 + 1) s.series.push(s.early ? 0 : last);
+    banner = reason === 'flag' ? 'Flag fell' : 'The sea is empty';
+    setTimeout(() => { banner = null; round === 1 ? showResult1() : showFinal(); }, 1300);
+  }
+
+  // ---------- simulation ----------
+  function update(dt) {
+    clock += dt;
+    boat.x += (boat.tx - boat.x) * Math.min(1, dt * 6);
+
+    for (const w of whales) {
+      if (w.dead) continue;
+      w.age += dt;
+      if (Math.random() < dt * 0.4) w.turn = rand(-0.5, 0.5);
+      w.a += w.turn * dt;
+      const s = w.spd * (w.surf ? 0.55 : 1) * (w.taken ? 0.3 : 1);
+      w.x += Math.cos(w.a) * s * dt;
+      w.y += Math.sin(w.a) * s * dt;
+      const m = L * 0.6;
+      if (w.x < m) { w.x = m; w.a = Math.PI - w.a; }
+      if (w.x > W - m) { w.x = W - m; w.a = Math.PI - w.a; }
+      if (w.y < seaTop) { w.y = seaTop; w.a = -w.a; }
+      if (w.y > seaBot) { w.y = seaBot; w.a = -w.a; }
+      if (!w.taken) {
+        w.st -= dt;
+        if (w.st <= 0) {
+          w.surf = !w.surf;
+          w.st = w.surf ? rand(CFG.surfMin, CFG.surfMax) : rand(CFG.diveMin, CFG.diveMax);
+          w.sAge = 0;
+          if (w.surf) w.spout = 1;
+        }
+      }
+      w.sAge += dt;
+      w.spout = Math.max(0, w.spout - dt * 0.9);
+    }
+
+    if (running) {
+      const s = stats[round];
+      timeLeft -= dt;
+      boat.cd -= dt;
+
+      // Births: logistic growth, only adults breed.
+      let adults = 0, alive = 0;
+      for (const w of whales) { if (w.dead || w.taken) continue; alive++; if (isAdult(w)) adults++; }
+      if (adults >= 2) birthAcc += CFG.r * adults * Math.max(0, 1 - alive / CFG.K) * dt;
+      while (birthAcc >= 1) {
+        birthAcc -= 1;
+        const moms = whales.filter((w) => !w.dead && !w.taken && isAdult(w));
+        if (!moms.length) break;
+        const mom = moms[Math.floor(Math.random() * moms.length)];
+        const c = mkWhale(mom.x + rand(-12, 12), mom.y + rand(-12, 12), true);
+        c.a = mom.a; c.x = clamp(c.x, L * 0.7, W - L * 0.7); c.y = clamp(c.y, seaTop, seaBot);
+        whales.push(c); s.born++;
+        float(c.x, c.y - 14, 'calf', COL.kelp);
+      }
+
+      // Rival ships hunt only in the open sea.
+      if (round === 1) {
+        for (const b of rivals) {
+          b.cd -= dt;
+          if (b.cd > 0) continue;
+          const targets = whales.filter((w) => !w.dead && !w.taken && isAdult(w) && w.surf && w.sAge >= CFG.rivalReact);
+          if (targets.length) {
+            fire(b, targets[Math.floor(Math.random() * targets.length)], 'rival');
+            b.cd = rand(CFG.rivalMin, CFG.rivalMax);
+          } else b.cd = 0.25;
+        }
+      }
+
+      sampleAcc += dt;
+      while (sampleAcc >= 0.5) { sampleAcc -= 0.5; s.series.push(aliveCount()); }
+    }
+
+    for (let i = shots.length - 1; i >= 0; i--) {
+      const sh = shots[i];
+      sh.t += dt;
+      if (sh.t >= sh.dur) {
+        sh.w.dead = true;
+        fx.push({ x: sh.w.x, y: sh.w.y, t: 0, col: sh.who === 'player' ? COL.brass : COL.rust });
+        if (stats[round]) {
+          if (sh.who === 'player') { stats[round].caught++; float(sh.w.x, sh.w.y - 10, '+1 barrel', COL.brass); }
+          else { stats[round].rival++; sh.src.n++; }
+        }
+        shots.splice(i, 1);
+      }
+    }
+    whales = whales.filter((w) => !w.dead);
+    for (const f of fx) f.t += dt;
+    fx = fx.filter((f) => f.t < 0.7);
+    for (const t of texts) t.t += dt;
+    texts = texts.filter((t) => t.t < 1.1);
+
+    if (running) {
+      if (timeLeft <= 0) endRound('flag');
+      else if (whales.length === 0 && shots.length === 0) endRound('empty');
+    }
+  }
+
+  // ---------- drawing ----------
+  function drawWhale(w) {
+    const sc = scaleOf(w) * L;
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.rotate(w.a);
+    const under = !w.surf && !w.taken;
+    ctx.globalAlpha = under ? 0.34 : 1;
+
+    if (w.surf && !w.taken && isAdult(w)) {
+      const pulse = reduceMotion ? 0.5 : 0.5 + 0.5 * Math.sin(clock * 6 + w.x);
+      ctx.strokeStyle = `rgba(241,230,207,${0.25 + 0.3 * pulse})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(0, 0, sc * 0.62, sc * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    const body = w.taken ? '#B8735F' : (isAdult(w) ? COL.whale : COL.calf);
+    // flukes
+    ctx.fillStyle = w.taken ? '#9C5A48' : COL.whaleBack;
+    ctx.beginPath();
+    ctx.moveTo(-sc * 0.44, 0);
+    ctx.quadraticCurveTo(-sc * 0.6, -sc * 0.04, -sc * 0.68, -sc * 0.2);
+    ctx.lineTo(-sc * 0.58, 0);
+    ctx.lineTo(-sc * 0.68, sc * 0.2);
+    ctx.quadraticCurveTo(-sc * 0.6, sc * 0.04, -sc * 0.44, 0);
+    ctx.fill();
+    // fins
+    ctx.beginPath(); ctx.ellipse(sc * 0.08, -sc * 0.17, sc * 0.1, sc * 0.035, -0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sc * 0.08, sc * 0.17, sc * 0.1, sc * 0.035, 0.6, 0, Math.PI * 2); ctx.fill();
+    // body
+    ctx.fillStyle = body;
+    ctx.beginPath(); ctx.ellipse(0, 0, sc * 0.5, sc * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+    // back ridge
+    ctx.fillStyle = w.taken ? '#9C5A48' : COL.whaleBack;
+    ctx.beginPath(); ctx.ellipse(-sc * 0.05, 0, sc * 0.34, sc * 0.05, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    if (w.surf && w.spout > 0 && !w.taken) {
+      const hx = w.x + Math.cos(w.a) * sc * 0.28, hy = w.y + Math.sin(w.a) * sc * 0.28;
+      const p = 1 - w.spout;
+      ctx.fillStyle = `rgba(241,230,207,${0.75 * w.spout})`;
+      for (let k = 0; k < 3; k++) {
+        ctx.beginPath();
+        ctx.arc(hx + (k - 1) * 5 * p, hy - 4 - 10 * p - k * 3, 3 + 7 * p, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+
+  function drawBoat(x, y, up, flag, label) {
+    ctx.save();
+    ctx.translate(x, y);
+    if (!up) ctx.rotate(Math.PI);
+    ctx.fillStyle = '#E9DCC0';
+    ctx.beginPath();
+    ctx.moveTo(0, -16); ctx.quadraticCurveTo(10, -6, 9, 12); ctx.lineTo(-9, 12); ctx.quadraticCurveTo(-10, -6, 0, -16);
+    ctx.fill();
+    ctx.fillStyle = '#6B5A45';
+    ctx.fillRect(-5, -2, 10, 9);
+    ctx.fillStyle = flag;
+    ctx.fillRect(-1, -4, 2, 12);
+    ctx.restore();
+    if (label !== undefined) {
+      ctx.font = '600 13px "Barlow Condensed", "Arial Narrow", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = flag;
+      ctx.fillText(label, x, y + (up ? 24 : -24));
+    }
+  }
+
+  function draw() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, COL.ink); g.addColorStop(0.3, COL.deep); g.addColorStop(1, COL.sea);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(241,230,207,0.055)'; ctx.lineWidth = 1.5;
+    const rows = 13, ph = reduceMotion ? 0 : clock * 0.8;
+    for (let i = 0; i < rows; i++) {
+      const y = hudH + (i + 0.5) * (H - hudH) / rows;
+      ctx.beginPath();
+      for (let x = 0; x <= W + 12; x += 12) {
+        const yy = y + Math.sin(x * 0.028 + ph + i * 1.7) * 3;
+        x === 0 ? ctx.moveTo(x, yy) : ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+    }
+
+    if (round === 2) {
+      ctx.strokeStyle = 'rgba(224,164,58,0.55)'; ctx.lineWidth = 2; ctx.setLineDash([7, 6]);
+      ctx.beginPath(); ctx.moveTo(0, buoyY); ctx.lineTo(W, buoyY); ctx.stroke(); ctx.setLineDash([]);
+      for (let x = 18, k = 0; x < W; x += 44, k++) {
+        ctx.fillStyle = k % 2 ? COL.bone : COL.brass;
+        ctx.beginPath(); ctx.arc(x, buoyY, 5, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.font = '600 12px "Barlow Condensed", "Arial Narrow", sans-serif';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillStyle = 'rgba(224,164,58,0.8)';
+      ctx.fillText('YOUR BAY · NO OTHER SHIPS PAST THIS LINE', 12, buoyY + 9);
+    }
+
+    for (const w of whales) if (!w.surf) drawWhale(w);
+    for (const w of whales) if (w.surf) drawWhale(w);
+
+    for (const f of fx) {
+      const p = f.t / 0.7;
+      ctx.strokeStyle = f.col; ctx.globalAlpha = 1 - p; ctx.lineWidth = 2.5;
+      ctx.beginPath(); ctx.arc(f.x, f.y, 6 + p * L * 0.5, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(f.x, f.y, 3 + p * L * 0.28, 0, Math.PI * 2); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    for (const sh of shots) {
+      const p = Math.min(1, sh.t / sh.dur);
+      const ex = sh.sx + (sh.w.x - sh.sx) * p, ey = sh.sy + (sh.w.y - sh.sy) * p;
+      ctx.strokeStyle = sh.who === 'player' ? COL.bone : COL.rust; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.moveTo(sh.sx, sh.sy); ctx.lineTo(ex, ey); ctx.stroke();
+      const a = Math.atan2(sh.w.y - sh.sy, sh.w.x - sh.sx);
+      ctx.fillStyle = sh.who === 'player' ? COL.brass : COL.rust;
+      ctx.save(); ctx.translate(ex, ey); ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(6, 0); ctx.lineTo(-4, -4); ctx.lineTo(-4, 4); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+
+    const bob = reduceMotion ? 0 : 1;
+    rivals.forEach((b) => {
+      const y = b.y + Math.sin(clock * 1.6 + b.bob) * 2 * bob;
+      drawBoat(b.x, y, false, COL.rust, round >= 1 ? (round === 1 ? (b.n ? b.n + ' taken' : 'hunting') : 'kept out') : undefined);
+    });
+    drawBoat(boat.x, boat.y + Math.sin(clock * 1.8) * 1.5 * bob, true, COL.brass);
+
+    for (const t of texts) {
+      const p = t.t / 1.1;
+      ctx.globalAlpha = 1 - p;
+      ctx.font = '700 15px "Barlow Condensed", "Arial Narrow", sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = t.col;
+      ctx.fillText(t.txt, t.x, t.y - p * 22);
+      ctx.globalAlpha = 1;
+    }
+
+    if (banner) {
+      ctx.fillStyle = 'rgba(8,24,36,0.78)';
+      ctx.fillRect(0, H / 2 - 42, W, 84);
+      ctx.fillStyle = COL.bone; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = `${Math.min(46, W / 9)}px "Rye", Georgia, serif`;
+      ctx.fillText(banner, W / 2, H / 2 + 2);
+    }
+  }
+
+  function hud() {
+    const s = stats[round];
+    const t = Math.max(0, Math.ceil(timeLeft));
+    $('hTime').textContent = `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+    $('hClock').classList.toggle('low', running && timeLeft <= 10);
+    $('hBar').textContent = s ? s.caught : 0;
+    $('hPod').textContent = aliveCount();
+  }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    draw();
+    hud();
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- input ----------
+  cv.addEventListener('pointerdown', (e) => {
+    if (!running) return;
+    e.preventDefault();
+    const r = cv.getBoundingClientRect();
+    const x = e.clientX - r.left, y = e.clientY - r.top;
+    let best = null, bd = Infinity, missed = null;
+    for (const w of whales) {
+      if (w.dead || w.taken) continue;
+      const d = Math.hypot(w.x - x, w.y - y);
+      const rad = L * 0.55 * scaleOf(w) + 18;
+      if (d > rad) continue;
+      if (isAdult(w) && w.surf) { if (d < bd) { bd = d; best = w; } }
+      else if (!missed) missed = w;
+    }
+    boat.tx = clamp(x, 30, W - 30);
+    if (best) {
+      if (boat.cd <= 0) { fire(boat, best, 'player'); boat.cd = CFG.playerCd; }
+    } else if (missed) {
+      float(missed.x, missed.y - 16, isAdult(missed) ? 'it dove' : 'too small', COL.boneDim);
+    }
+  });
+
+  // ---------- panels ----------
+  const panel = $('panel');
+  function show(html) {
+    panel.innerHTML = html;
+    $('panelWrap').hidden = false;
+    panel.scrollTop = 0;
+    const b = panel.querySelector('.btn');
+    if (b) b.focus({ preventScroll: true });
+  }
+  panel.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-go]');
+    if (!b) return;
+    const go = b.dataset.go;
+    if (go === 'intro1') showIntro1();
+    else if (go === 'r1') startRound(1);
+    else if (go === 'intro2') showIntro2();
+    else if (go === 'r2') startRound(2);
+    else if (go === 'title') showTitle();
+  });
+
+  const fmt = (sec) => `0:${String(Math.max(0, Math.round(sec))).padStart(2, '0')}`;
+
+  function showTitle() {
+    round = 0; mode = 'title'; banner = null;
+    $('hRound').innerHTML = '<b>Open Season</b>';
+    timeLeft = CFG.roundTime;
+    show(`
+      <p class="brand">Bullet Games presents</p>
+      <h1>Open Season</h1>
+      <p class="lede">One pod of whales. One harpoon. Two rounds on a one-minute bullet clock.</p>
+      <div class="howto"><b>Tap a whale when it surfaces</b> (it glows and spouts) to harpoon it. Every whale you land is one barrel of oil. Most barrels wins.</div>
+      <div class="row"><button class="btn" data-go="intro1" id="btnStart">Play</button></div>
+      <p class="credit">A cabinet for the EWOT Arcade by Aaryman Vijaywargi. Works with a finger or a mouse.</p>
+    `);
+  }
+
+  function showIntro1() {
+    show(`
+      <p class="brand">Round 1 of 2</p>
+      <h2>The open sea</h2>
+      <p>Three other ships are hunting the same pod. The ocean belongs to nobody, so any whale you don't take, they can.</p>
+      <p class="small">You have one minute. The pod grows by itself when there are enough adults left.</p>
+      <div class="row"><button class="btn" data-go="r1" id="btnR1">Start round 1</button></div>
+    `);
+  }
+
+  function showResult1() {
+    const s = stats[1];
+    const early = s.early ? `<p>The pod was gone with <b>${fmt(CFG.roundTime - s.endT)}</b> still on the clock.</p>` : '';
+    show(`
+      <p class="brand">Round 1 result</p>
+      <h2>${s.caught} barrel${s.caught === 1 ? '' : 's'}</h2>
+      <p>The other ships landed <b>${s.rival}</b>. ${s.left ? `<b>${s.left}</b> whale${s.left === 1 ? ' was' : 's were'} still swimming at the bell, and they're not yours: the next ship to sail by gets them.` : 'No whales were left.'}</p>
+      ${early}
+      <div class="row"><button class="btn" data-go="intro2" id="btnNext">Round 2</button></div>
+    `);
+  }
+
+  function showIntro2() {
+    show(`
+      <p class="brand">Round 2 of 2</p>
+      <h2>Your bay</h2>
+      <p>Same pod, same ships, same minute. One new rule: <b>this bay belongs to you.</b> The other ships have to stay behind the buoy line.</p>
+      <p>Whales still swimming at the bell stay yours, so they count toward your score too.</p>
+      <div class="row"><button class="btn" data-go="r2" id="btnR2">Start round 2</button></div>
+    `);
+  }
+
+  function chartSVG() {
+    const w = 320, h = 132, l = 28, rgt = 8, top = 8, bot = 22;
+    const ymax = Math.max(CFG.K, ...stats[1].series, ...stats[2].series);
+    const X = (i, n) => l + (i / (n - 1)) * (w - l - rgt);
+    const Y = (v) => top + (1 - v / ymax) * (h - top - bot);
+    const path = (ser) => ser.map((v, i) => `${i ? 'L' : 'M'}${X(i, ser.length).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+    const ticks = [0, Math.round(ymax / 2), ymax];
+    let grid = '';
+    for (const t of ticks) {
+      grid += `<line x1="${l}" x2="${w - rgt}" y1="${Y(t)}" y2="${Y(t)}" stroke="rgba(241,230,207,0.12)" stroke-width="1"/>`;
+      grid += `<text x="${l - 6}" y="${Y(t) + 4}" text-anchor="end" font-size="10" fill="#BDB39E">${t}</text>`;
+    }
+    const xl = [['0:00', 0], ['0:30', 0.5], ['1:00', 1]].map(([s, f]) =>
+      `<text x="${l + f * (w - l - rgt)}" y="${h - 6}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}" font-size="10" fill="#BDB39E">${s}</text>`).join('');
+    return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Whales in the water over each round">
+      ${grid}${xl}
+      <path d="${path(stats[1].series)}" fill="none" stroke="${COL.rust}" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="${path(stats[2].series)}" fill="none" stroke="${COL.brass}" stroke-width="2.5" stroke-linejoin="round"/>
+      <text x="${w - rgt}" y="${top + 10}" text-anchor="end" font-size="11" fill="${COL.brass}">Your bay</text>
+      <text x="${w - rgt}" y="${top + 24}" text-anchor="end" font-size="11" fill="${COL.rust}">Open sea</text>
+    </svg>`;
+  }
+
+  function showFinal() {
+    const a = stats[1], b = stats[2];
+    const t1 = a.caught, t2 = b.caught + b.left;
+    let best = 0;
+    try { best = Number(localStorage.getItem('openSeasonBest') || 0); if (t2 > best) { localStorage.setItem('openSeasonBest', String(t2)); best = t2; } } catch (e) { best = t2; }
+    const tip = b.left < 6
+      ? `<p class="small">Try round 2 again and leave more whales swimming. Watch what happens to the calf count.</p>`
+      : '';
+    show(`
+      <p class="brand">Final tally</p>
+      <h2>Same pod. Same you. One new rule.</h2>
+      <div class="score">
+        <div class="r1"><div class="lbl">Open sea</div><div class="big">${t1}</div><div class="sub">${a.caught} landed, ${a.left} left swimming (not yours)</div></div>
+        <div class="r2"><div class="lbl">Your bay</div><div class="big">${t2}</div><div class="sub">${b.caught} landed + ${b.left} still yours &middot; ${b.born} calves born</div></div>
+      </div>
+      <div class="chart">${chartSVG()}</div>
+      <p class="small">Whales in the water, second by second.</p>
+      <p>Nothing about the whales changed between rounds. What changed is who gets the whale you don't catch. In the open sea it goes to the next ship, so every captain races and the pod collapses. In your bay it stays yours, and it has calves, so letting it swim is how you end up with more.</p>
+      <p>It's the same reason nobody worries about running out of cows.</p>
+      ${tip}
+      <p class="small fact">In real life nobody could fence the ocean. The pressure came off whales when substitutes showed up: kerosene after 1859, then palm-oil margarine by the 1940s. And the race got deadlier before it ended: with fuel-powered ships and harpoon cannons, whalers killed about a million whales between 1904 and 1978. Economists call round 1 the tragedy of the commons.</p>
+      <div class="row">
+        <button class="btn" data-go="intro1" id="btnAgain">Play again</button>
+        <button class="btn ghost" data-go="intro2" id="btnBay">Replay round 2</button>
+      </div>
+      <p class="credit">Best round 2 on this device: ${best}. Bullet Games &middot; Aaryman Vijaywargi.</p>
+    `);
+  }
+
+  window.addEventListener('resize', resize);
+  resize();
+  seedPod(10);
+  showTitle();
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
