@@ -873,7 +873,7 @@
   let ammo = CFG.ammo0, hull = 100, score = 0, combo = 0, comboT = 0, fireCd = 0;
   let waveIdx = 0, collapsed = false, collapseT = 0, swarmLeft = 0, swarmT = 0, heartT = 0, chirpT = 1, lastTick = 99;
   let yaw = 0, pitch = -0.1, yawVel = 0, shake = 0, recoil = 0, sampleAcc = 0;
-  let myHerd = null, brandToken = 0;
+  let myHerd = null, brandToken = 0, fizzleHint = false;
   const stats = [null, null, null];
   const newStats = () => ({ score: 0, harvested: 0, shot: 0, droneKills: 0, rivalKills: 0, born: 0, survived: 0, overrun: false, collapseAt: null, series: [], start: 0, herdStart: 0, herdPeak: 0, herdEnd: 0, herdBonus: 0, maxCombo: 0, fizzles: 0 });
 
@@ -976,7 +976,7 @@
     round = n; stats[n] = newStats();
     resetWorld();
     ammo = CFG.ammo0; hull = 100; score = 0; combo = 0; comboT = 0; fireCd = 0; timeLeft = CFG.roundTime; roundT = 0;
-    waveIdx = 0; collapsed = false; collapseT = 0; swarmLeft = 0; lastTick = 99; sampleAcc = 0; yaw = 0; yawVel = 0;
+    waveIdx = 0; collapsed = false; collapseT = 0; swarmLeft = 0; lastTick = 99; sampleAcc = 0; yaw = 0; yawVel = 0; fizzleHint = false;
     stats[n].start = beastCount(); stats[n].series = [stats[n].start];
     $('hRound').innerHTML = n === 1 ? '<b>Round 1</b> Open range' : '<b>Round 2</b> Homestead';
     $('panelWrap').hidden = true; $('banner').hidden = true;
@@ -990,7 +990,7 @@
     } else {
       phase = 'brand'; running = false;
       A.music('home');
-      banner('HOMESTEAD<small>Tap a herd to brand it</small>', 0);
+      banner('HOMESTEAD<small>Tap a herd to brand it as yours</small>', 0);
       herds.forEach((h) => { h.fence = makeFence(h, 0xFFFFFF); h.fence.userData.preview = true; });
       const tok = ++brandToken;
       setTimeout(() => { if (phase === 'brand' && tok === brandToken) brandHerd(herds[2]); }, 9000);
@@ -1021,7 +1021,7 @@
       $('banner').hidden = true;
       phase = 'play'; running = true;
       stats[2].herdStart = herdCount(myHerd); stats[2].herdPeak = stats[2].herdStart;
-      toast('Your herd: <b>' + herdCount(myHerd) + '</b>. Nobody else can touch it.', 3.5);
+      toast('Your herd: <b>' + herdCount(myHerd) + '</b>. Hunt inside your <b>blue fence</b> for plasma. Nobody else can.', 5);
       setCrossVisible();
     }, order.length * 380 + 500);
   }
@@ -1063,7 +1063,7 @@
     stats[round].collapseAt = roundT;
     A.music('off'); A.sting();
     canvasEl.style.filter = 'saturate(0.35) brightness(0.85)';
-    toast('The range is empty.', 3);
+    toast('The range is empty. <b>No more plasma out here.</b>', 3.5);
     if (round === 1) { swarmLeft = CFG.swarm; swarmT = 1.0; }
   }
 
@@ -1113,6 +1113,7 @@
         tracer(muzzle, end, 0x9FF9FF, 0.025, 0.1);
         fenceFizzle(b.herd, end, muzzle);
         floatText(end.clone().setY(3), 'BRANDED: ' + b.herd.owner.name, b.herd.owner.css);
+        if (!fizzleHint) { fizzleHint = true; toast(`That herd is <b>${b.herd.owner.name}'s</b>. Hunt inside your own blue fence.`, 3.5); }
         stats[2].fizzles++;
       } else {
         tracer(muzzle, end, 0x9FF9FF, 0.028, 0.11);
@@ -1524,7 +1525,7 @@
   stage.addEventListener('pointerdown', (e) => {
     A.ensure();
     const r = stage.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top;
-    if (phase === 'brand') { tryBrand(x, y); return; }
+    if (phase === 'brand') { touch = { id: e.pointerId, x, y, sx: x, sy: y, t: performance.now(), moved: 0, brand: true }; try { stage.setPointerCapture(e.pointerId); } catch (err) {} return; }
     if (phase !== 'play') return;
     if (e.pointerType === 'mouse') {
       if (e.button === 0) fireAt(x, y);
@@ -1546,7 +1547,8 @@
   const endTouch = (e) => {
     if (!touch || touch.id !== e.pointerId) return;
     const r = stage.getBoundingClientRect(); const x = e.clientX - r.left, y = e.clientY - r.top;
-    if (e.pointerType !== 'mouse' && touch.moved < 14 && performance.now() - touch.t < 450 && phase === 'play') fireAt(x, y);
+    if (touch.brand) { if (touch.moved < 14 && phase === 'brand') tryBrand(x, y); }
+    else if (e.pointerType !== 'mouse' && touch.moved < 14 && performance.now() - touch.t < 450 && phase === 'play') fireAt(x, y);
     touch = null;
   };
   stage.addEventListener('pointerup', endTouch);
@@ -1563,7 +1565,7 @@
   function steer(dt) {
     let v = 0;
     if (keys.l) v += 1.6; if (keys.r) v -= 1.6;
-    if (!isTouch && mouse.inside && phase === 'play' && !touch) {
+    if (!isTouch && mouse.inside && (phase === 'play' || phase === 'brand') && !touch) {
       const edge = W * 0.1;
       if (mouse.x < edge) v += 1.8 * (1 - mouse.x / edge);
       else if (mouse.x > W - edge) v -= 1.8 * (1 - (W - mouse.x) / edge);
@@ -1623,7 +1625,7 @@
         <div><div class="k">PLASMA HUNTED</div><div class="v" style="color:var(--cyan)">${s.harvested}</div></div>
       </div>
       <p>You shot <b>${s.shot}</b> glowbeasts. The other hunters shot <b>${took}</b>.${s.collapseAt != null ? ` The last one fell at <b>${fmtT(s.collapseAt)}</b>.` : ''}</p>
-      <p class="small">Round 2 is the same range with fresh herds. One rule changes.</p>
+      <p class="small">Round 2 is the same range with fresh herds and one new rule: first you tap a herd to brand it. Then you hunt that herd for plasma, and nobody else can.</p>
       <div class="row"><button class="btn" data-go="r2" id="btnR2">ROUND 2</button></div>
     `);
   }
