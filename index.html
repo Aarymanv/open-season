@@ -190,6 +190,9 @@
   .chart { margin-top: 14px; }
   .chart svg { display: block; width: 100%; height: auto; }
   .lines p { margin: 10px 0 0; font-size: 17px; }
+  .deeper { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: rgba(60, 242, 255, 0.06); border: 1px solid rgba(60, 242, 255, 0.25); }
+  .deeper summary { cursor: pointer; font-family: "Barlow Condensed", sans-serif; font-weight: 700; font-size: 14px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--cyan); }
+  .deeper p { font-size: 15px; color: var(--text); margin: 8px 0 0; }
   .lines .closer { font-family: "Rye", Georgia, serif; font-size: 19px; color: var(--gold); margin-top: 16px; }
 
   @media (max-height: 560px) {
@@ -1680,7 +1683,7 @@
     else bLine = `In Round 2 you emptied your own herd. Nobody else could touch it, so that one was on you.`;
     const cLine = a.collapseAt != null
       ? `The open range was empty by <b>${fmtT(a.collapseAt)}</b>. ${b.collapseAt == null ? 'The homestead range never went dark.' : ''}`
-      : `The open range was nearly empty by the bell.`;
+      : `The open range was down to <b>${a.series[a.series.length - 1]}</b> beasts at the bell, from ${a.start} at the start.`;
     show(`
       <p class="kicker">RANGE REPORT</p>
       <h2>Same range. One new rule.</h2>
@@ -1699,6 +1702,9 @@
         <p>Same beasts, same hunters, same guns. The only thing that changed was who owned the herd.</p>
         <p class="closer">Nobody ever worried about the chicken going extinct.</p>
       </div>
+      <details class="deeper"><summary>Deeper cut: the real range</summary>
+        <p>You can fence a pasture, not an ocean. Nobody owned the whales, so whalers raced each other with steamships and harpoon cannons and killed about a million of them between 1904 and 1978. What ended it is still argued: <i>Saving the Whales?</i> credits cheap vegetable oil, while York (<i>Why Petroleum Did Not Save the Whales</i>) credits whales running out plus political pressure. Either way, nobody ever branded a herd of whales.</p>
+      </details>
       <div class="row"><button class="btn" data-go="again" id="btnAgain">PLAY AGAIN</button></div>
       <p class="small" style="margin-top:14px">Economists call Round 1 the tragedy of the commons. Bullet Games &middot; Aaryman Vijaywargi.</p>
     `);
