@@ -35,7 +35,7 @@
     font-family: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 16px;
     -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent;
   }
-  #app { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--night); }
+  #app { position: fixed; inset: 0; overflow: hidden; background: var(--night); }
   #stage { position: absolute; inset: 0; touch-action: none; }
   #stage.aim { cursor: none; }
   #stage canvas { display: block; width: 100%; height: 100%; transition: filter 2.2s ease; }
@@ -70,7 +70,7 @@
     padding: 10px 14px; background: linear-gradient(rgba(10, 5, 32, 0.85), rgba(10, 5, 32, 0));
   }
   .hud .l { justify-self: start; line-height: 1.1; }
-  .hud .round { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); }
+  .hud .round { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
   .hud .round b { color: var(--text); }
   .hud .score { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--gold); text-shadow: 0 0 10px rgba(255, 210, 60, 0.5); }
   .clock {
@@ -123,7 +123,7 @@
   #banner.grey { color: #D9D3E3; text-shadow: 0 0 18px rgba(255, 255, 255, 0.35), 4px 4px 0 rgba(0, 0, 0, 0.6); }
 
   .toast {
-    position: absolute; left: 50%; bottom: 17%; transform: translateX(-50%); max-width: calc(100% - 32px); box-sizing: border-box;
+    position: absolute; left: 50%; bottom: 17%; transform: translateX(-50%); width: max-content; max-width: calc(100% - 32px); box-sizing: border-box;
     padding: 9px 16px; border-radius: 999px; background: rgba(10, 5, 32, 0.85); border: 1px solid rgba(60, 242, 255, 0.6);
     font-family: "Barlow Condensed", sans-serif; font-size: 19px; font-weight: 600; letter-spacing: 0.04em; text-align: center;
     color: var(--text); pointer-events: none; transition: opacity 0.4s; box-shadow: 0 0 18px rgba(60, 242, 255, 0.25);
@@ -138,9 +138,9 @@
   .icon-btn:focus-visible, .btn:focus-visible { outline: 3px solid var(--cyan); outline-offset: 3px; }
 
   /* Title */
-  #title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 16px; text-align: center; }
+  #title { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; justify-content: safe center; gap: 14px; padding: 16px; text-align: center; overflow-y: auto; box-sizing: border-box; }
   .logo {
-    font-family: "Bungee", "Arial Black", sans-serif; font-size: clamp(58px, 17vw, 158px); line-height: 0.86; letter-spacing: 0.01em;
+    font-family: "Bungee", "Arial Black", sans-serif; font-size: clamp(44px, min(17vw, 19vh), 158px); line-height: 0.86; letter-spacing: 0.01em;
     background: linear-gradient(180deg, #FFFFFF 0%, #DDF4FF 30%, #7B6CFF 49%, #FF3CAC 52%, #FF9A3C 78%, #FFE27A 100%);
     -webkit-background-clip: text; background-clip: text; color: transparent;
     -webkit-text-stroke: 1.5px rgba(255, 255, 255, 0.55);
@@ -173,6 +173,7 @@
   .panel p { line-height: 1.5; margin: 12px 0 0; }
   .panel .small { font-size: 14px; color: var(--dim); }
   .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; align-items: center; }
+  .panel .row { position: sticky; bottom: -22px; margin-bottom: -22px; padding: 12px 0 22px; background: linear-gradient(rgba(16, 7, 33, 0), var(--panel) 35%); }
   .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
   .stats div { padding: 10px; border-radius: 10px; background: rgba(244, 236, 255, 0.05); border: 1px solid rgba(244, 236, 255, 0.1); }
   .stats .k { font-family: "Barlow Condensed", sans-serif; font-size: 12px; letter-spacing: 0.16em; color: var(--dim); }
@@ -191,7 +192,24 @@
   .lines p { margin: 10px 0 0; font-size: 17px; }
   .lines .closer { font-family: "Rye", Georgia, serif; font-size: 19px; color: var(--gold); margin-top: 16px; }
 
+  @media (max-height: 560px) {
+    .panel { padding: 14px 18px 22px; }
+    .panel h2 { font-size: 26px; }
+    .panel p { margin-top: 8px; font-size: 15px; line-height: 1.4; }
+    .stats { margin-top: 8px; }
+    .stats div { padding: 6px 9px; }
+    .stats .v { font-size: 20px; }
+    .versus { margin-top: 10px; }
+    .versus .s { font-size: 22px; }
+    .lines p { font-size: 15px; }
+    .btn { font-size: 19px; padding: 10px 26px; }
+    #title { gap: 8px; }
+    .sub { font-size: 18px; }
+    .how { font-size: 15px; }
+    .credit { font-size: 12px; }
+  }
   @media (max-width: 420px) {
+    .hud .round span { display: none; }
     .hud.top { padding-inline: 10px; }
     .hud .score { font-size: 21px; }
     .clock { font-size: 20px; padding: 2px 9px 2px 7px; }
@@ -210,7 +228,7 @@
   <div id="cross" hidden></div>
 
   <div class="hud top" id="hudTop" hidden>
-    <div class="l"><div class="round" id="hRound"><b>Round 1</b> Open range</div><div class="score" id="hScore">0</div></div>
+    <div class="l"><div class="round" id="hRound"><b>Round 1</b> <span>Open range</span></div><div class="score" id="hScore">0</div></div>
     <div class="clock" id="hClock"><span class="flag"></span><span id="hTime">1:00</span></div>
     <div class="r"><canvas class="spark" id="spark" width="236" height="68"></canvas><div class="beasts"><b id="hBeasts">0</b> beasts</div></div>
   </div>
@@ -944,6 +962,8 @@
     rifle.scale.setScalar(lerp(0.44, 0.62, t));
   }
   window.addEventListener('resize', layout);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', layout);
+  window.addEventListener('orientationchange', () => setTimeout(layout, 250));
 
   const EYE = new THREE.Vector3(0, 2.6, 0);
   let tween = null; // {t, dur, fromPos, fromQuat}
@@ -978,7 +998,7 @@
     ammo = CFG.ammo0; hull = 100; score = 0; combo = 0; comboT = 0; fireCd = 0; timeLeft = CFG.roundTime; roundT = 0;
     waveIdx = 0; collapsed = false; collapseT = 0; swarmLeft = 0; lastTick = 99; sampleAcc = 0; yaw = 0; yawVel = 0; fizzleHint = false;
     stats[n].start = beastCount(); stats[n].series = [stats[n].start];
-    $('hRound').innerHTML = n === 1 ? '<b>Round 1</b> Open range' : '<b>Round 2</b> Homestead';
+    $('hRound').innerHTML = n === 1 ? '<b>Round 1</b> <span>Open range</span>' : '<b>Round 2</b> <span>Homestead</span>';
     $('panelWrap').hidden = true; $('banner').hidden = true;
     $('hudTop').hidden = false; $('hudBot').hidden = false;
     rifle.visible = true;
@@ -1587,6 +1607,7 @@
   // ======================================================================
   function show(html) {
     panel.innerHTML = html; $('panelWrap').hidden = false; panel.scrollTop = 0;
+    clearTimeout(toastTimer); $('toast').hidden = true;
     const b = panel.querySelector('.btn'); if (b) b.focus({ preventScroll: true });
   }
   panel.addEventListener('click', (e) => {
