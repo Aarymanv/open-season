@@ -1,8 +1,11 @@
-# Open Season
+# Open Range
 
-A two-round, one-minute whaling game for the EWOT Arcade. Tap a whale when it surfaces to harpoon it.
-Round 1 is the open sea, shared with three rival ships. Round 2 is your own bay.
+A neon synthwave prairie shooter for the EWOT Arcade. Two rounds, one minute each.
 
-Play: the whole game is `index.html`, one file with no build step. It works on a phone or a laptop.
+Shoot glowbeasts for plasma, shoot drones to survive. Round 1 is the open range, shared with four rival hunters.
+Round 2 is the homestead: you brand one herd and nobody else can touch it.
+
+Tap or click to fire. Drag (or A / D) to look around. Works on a phone or a laptop.
+The whole game is `index.html`: one file, Three.js from a CDN, everything else generated in code.
 
 Made by Aaryman Vijaywargi (Bullet Games), built with AI.
